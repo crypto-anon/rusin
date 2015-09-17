@@ -1,10 +1,11 @@
 #!/usr/bin/python2.7
 
-import subprocess
+import subprocess, os
 
 def readfile(name):
     return open(name, 'r').read()
 
+cwd = os.path.dirname(os.path.realpath(__file__))
 openssl_cyphers = ("aes-128-cbc", "aes-128-ecb", "aes-192-cbc", "aes-192-ecb", "aes-256-cbc",
     "aes-256-ecb", "bf", "bf-cbc", "bf-cfb", "bf-ecb", "bf-ofb", "camellia-128-cbc",
     "camellia-128-ecb", "camellia-192-cbc", "camellia-192-ecb", "camellia-256-cbc",
@@ -18,8 +19,19 @@ input_file = "cyphertext.bin"
 output_file = "result.txt"
 key_file = "key.txt"
 
+# trim whitespaces
+key_contents = readfile(key_file)
+try:
+    os.mkdir(cwd + '/output')
+except:
+    pass
+key_file_trimmed = cwd + '/output/key_trimmed.txt'
+f = open(key_file_trimmed, 'w')
+f.write(key_contents.strip())
+f.close()
+
 for cypher in openssl_cyphers:
-    cmd = ("openssl", cypher, "-d", "-in", input_file, "-out", output_file, "-k", readfile(key_file))
+    cmd = ("openssl", cypher, "-d", "-in", input_file, "-out", output_file, "-k", readfile(key_file_trimmed))
     child = subprocess.Popen(cmd, stdout=subprocess.PIPE,
                                   stderr=subprocess.PIPE)
     data = child.communicate()
