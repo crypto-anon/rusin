@@ -35,7 +35,7 @@ openssl_cyphers = (
 input_file = "cyphertext.bin"
 output_file = "result.txt"
 key_file = "key.txt"
-print_all = True
+print_all = False
 
 if not os.path.exists(cwd + '/output'):
     os.mkdir(cwd + '/output')
@@ -43,7 +43,7 @@ if not os.path.exists(cwd + '/input'):
     os.mkdir(cwd + '/input')
 
 # trim whitespaces
-key_contents = readfile(key_file)
+key_contents = readfile(key_file).strip()
 #key_file_trimmed = cwd + '/output/key_trimmed.txt'
 #f = open(key_file_trimmed, 'w')
 #f.write(key_contents.strip())
