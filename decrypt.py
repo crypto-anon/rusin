@@ -39,8 +39,6 @@ print_all = False
 
 if not os.path.exists(cwd + '/output'):
     os.mkdir(cwd + '/output')
-if not os.path.exists(cwd + '/input'):
-    os.mkdir(cwd + '/input')
 
 # trim whitespaces
 key_contents = readfile(key_file).strip()
