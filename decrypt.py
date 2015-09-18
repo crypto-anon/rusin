@@ -1,6 +1,27 @@
 #!/usr/bin/python2.7
 
-import subprocess, os, re
+from __future__ import division
+import subprocess, os, re, sys, string
+from tempfile import NamedTemporaryFile
+
+def istext(filename):
+    s = readfile(filename)
+    text_characters = "".join(map(chr, range(32, 127)) + list("\n\r\t\b"))
+    _null_trans = string.maketrans("", "")
+    if not s:
+        # Empty files are considered text
+        return True
+    if "\0" in s:
+        # Files with null bytes are likely binary
+        return False
+    # Get the non-text characters (maps a character to itself then
+    # use the 'remove' option to get rid of the text characters.)
+    t = s.translate(_null_trans, text_characters)
+    # If more than 30% non-text characters, then
+    # this is considered a binary file
+    if float(len(t)) / float(len(s)) > 0.30:
+        return False
+    return True
 
 def readfile(name):
     return open(name, 'r').read()
@@ -19,7 +40,7 @@ def process_text(text):
     return variants
 
 def variant_filename(index):
-    return cwd + '/output/var_' + str(index) + '.txt'
+    return 
 
 cwd = os.path.dirname(os.path.realpath(__file__))
 openssl_cyphers = (
@@ -32,33 +53,27 @@ openssl_cyphers = (
     "rc4", "rc4-40",
     "seed", "seed-cbc", "seed-cfb", "seed-ecb", "seed-ofb"
 )
+cyrillic_encodings = ("mac_cyrillic", "iso8859_5", "cp855", "cp866", "cp1251", "koi8_r")
 input_file = "cyphertext.bin"
-output_file = "result.txt"
 key_file = "key.txt"
-print_all = False
-
-if not os.path.exists(cwd + '/output'):
-    os.mkdir(cwd + '/output')
+print_all = True
+output_file = NamedTemporaryFile(delete=False)
+output_file.close()
 
 # trim whitespaces
 key_contents = readfile(key_file).strip()
-#key_file_trimmed = cwd + '/output/key_trimmed.txt'
-#f = open(key_file_trimmed, 'w')
-#f.write(key_contents.strip())
-#f.close()
-
-variants = process_text(key_contents)
-for variant_index, variant in enumerate(variants):
-    with open(variant_filename(variant_index), 'w') as f:
-        f.write(variant)
 
 for cypher in openssl_cyphers:
-    for variant_index, variant in enumerate(variants):
-        variant_file = variant_filename(variant_index)
-
-        cmd = ("openssl", cypher, "-d", "-in", input_file, "-out", output_file, "-k", readfile(variant_file))
-        child = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                                      stderr=subprocess.PIPE)
-        data = child.communicate()
-        if child.returncode == 0 or print_all:
-            print "[var%d, %s]\n%s\n%s" % (variant_index, cypher, readfile(output_file), '-' * 50)
+    for encoding in cyrillic_encodings:
+        text = key_contents.decode('utf-8').encode(encoding)
+        variants = process_text(text)
+        for v_index, v in enumerate(variants):
+            cmd = ("openssl", cypher, "-d", "-in", input_file, "-out", output_file.name, "-k", v)
+            child = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                                          stderr=subprocess.PIPE)
+            data = child.communicate()
+            #if child.returncode == 0 or print_all:
+            if istext(output_file.name):
+                decrypted = readfile(output_file.name)
+                decrypted = decrypted.decode(encoding)
+                print "[var%d, %s, %s]\n%s\n%s" % (v_index, encoding, cypher, decrypted, '-' * 50)
